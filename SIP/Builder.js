@@ -49,42 +49,44 @@ const Builder = {
 
         if (challenge_data) {
             var cnonce = Builder.generateBranch();
-            if(proxy_auth){
-                res.headers['Proxy-Authorization'] = `Digest username="${props.username}", realm="${challenge_data.realm}", nonce="${challenge_data.nonce}", uri="${res.requestUri}", response="${Builder.DigestResponse(props.username, props.password, challenge_data.realm, challenge_data.nonce, res.method, res.requestUri, challenge_data.qop, cnonce, '00000001')}", qop="${challenge_data.qop}", cnonce="${cnonce}", nc="00000001", algorithm="MD5"`;
-            }else{
-                res.headers['Authorization'] = `Digest username="${props.username}", realm="${challenge_data.realm}", nonce="${challenge_data.nonce}", uri="${res.requestUri}", response="${Builder.DigestResponse(props.username, props.password, challenge_data.realm, challenge_data.nonce, res.method, res.requestUri, challenge_data.qop, cnonce, '00000001')}", qop="${challenge_data.qop}", cnonce="${cnonce}", nc="00000001", algorithm="MD5"`;
+            if (proxy_auth) {
+                const response = Builder.DigestResponse(props.username, props.password, challenge_data.realm, challenge_data.nonce, res.method, res.requestUri, challenge_data.qop, cnonce, '00000001');
+                res.headers['Proxy-Authorization'] = `Digest username="${props.username}",realm="${challenge_data.realm}", nonce="${challenge_data.nonce}", uri="${res.requestUri}", response="${response}", qop="${challenge_data.qop}", cnonce="${cnonce}", nc="00000001", algorithm="MD5"`;
+            } else {
+                const response = Builder.DigestResponseShort(props.username, props.password, challenge_data.realm, challenge_data.nonce, "REGISTER", `${res.requestUri}`);
+                res.headers['Authorization'] = `Digest username="${props.username}",realm="${challenge_data.realm}",nonce="${challenge_data.nonce}", uri="${res.requestUri}",response="${response}", algorithm="MD5"`;
             }
         }
-        
+
         res.headers['Content-Length'] = res.body.length;
 
         return res;
     },
 
     Build(obj) {
-        if(!obj.isResponse){
+        if (!obj.isResponse) {
             obj.isResponse = false;
         }
         let message = '';
         if (obj.isResponse) {
             message += `SIP/2.0 ${obj.statusCode} ${obj.statusText} ${(typeof obj.requestUri !== 'undefined') ? obj.requestUri.slice(obj.requestUri.indexOf(" ") + 1) : ""}\r\n`;
         } else {
-          message += `${obj.method} ${obj.requestUri} SIP/2.0\r\n`;
+            message += `${obj.method} ${obj.requestUri} SIP/2.0\r\n`;
         }
         for (const header in obj.headers) {
-          message += `${header}: ${obj.headers[header]}\r\n`;
+            message += `${header}: ${obj.headers[header]}\r\n`;
         }
         message += '\r\n';
         message += obj.body;
         return message;
     },
 
-    generateBranch:() =>{
+    generateBranch: () => {
         const branchId = Math.floor(Math.random() * 10000000000000);
         return `z9hG4bK${branchId}X2`;
     },
 
-    generateTag:() =>{
+    generateTag: () => {
         const tag = Math.floor(Math.random() * 10000000000000);
         return tag;
     },
@@ -104,18 +106,25 @@ const Builder = {
     * @returns {string} - The response.
     */
 
-    DigestResponse:(username, password, realm, nonce, method, uri, qop, cnonce, nc) => {
+    DigestResponse: (username, password, realm, nonce, method, uri, qop, cnonce, nc) => {
         const ha1 = crypto.createHash('md5').update(`${username}:${realm}:${password}`).digest('hex');
         const ha2 = crypto.createHash('md5').update(`${method}:${uri}`).digest('hex');
         const response = crypto.createHash('md5').update(`${ha1}:${nonce}:${nc}:${cnonce}:${qop}:${ha2}`).digest('hex');
         return response;
-    },        
+    },
 
-    generateChallengeNonce:() =>{
+    DigestResponseShort: (username, password, realm, nonce, method, uri) => {
+        const ha1 = crypto.createHash('md5').update(`${username}:${realm}:${password}`).digest('hex');
+        const ha2 = crypto.createHash('md5').update(`${method}:${uri}`).digest('hex');
+        const response = crypto.createHash('md5').update(`${ha1}:${nonce}:${ha2}`).digest('hex');
+        return response;
+    },
+
+    generateChallengeNonce: () => {
         return crypto.randomBytes(16).toString('hex');
     },
 
-    generateChallengeOpaque:() =>{
+    generateChallengeOpaque: () => {
         return crypto.randomBytes(8).toString('hex');
     },
 }
