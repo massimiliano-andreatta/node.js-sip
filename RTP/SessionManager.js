@@ -1,12 +1,12 @@
 const utils = require('../utils.js');
 const Session = require('./Session.js');
 
-class SessionManager{
-    constructor(){
+class SessionManager {
+    constructor() {
         this.sessions = {};
     }
 
-    new_session(props){
+    new_session(props) {
         //pick a random port for listening
         let port = Math.floor(Math.random() * 65535) + 1;
         let listen_sdp = `v=0
@@ -24,7 +24,7 @@ class SessionManager{
         a=sendrecv
         a=rtcp-mux`.replace(/^[ \t]+/gm, '')
 
-        props.listen_sdp = listen_sdp;
+        props.listen_sdp = props.sdp;
         this.sessions[props.call_id] = new Session(props);
         return this.sessions[props.call_id];
     }

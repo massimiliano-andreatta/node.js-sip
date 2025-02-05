@@ -2,46 +2,48 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const Parser = require('../SDP').Parser;
 
-class Session{
-    constructor(props){
+class Session {
+    constructor(props) {
         this.call_id = props.call_id;
         this.sdp = props.sdp;
         this.listen_sdp = props.listen_sdp;
         this.callback = props.callback;
+        this.welcome_message = props.welcome_message;
     }
 
-    start(){
+    start() {
         let call_id = this.call_id;
         let parsed_sdp = Parser.parse(this.sdp);
 
-        console.log('codecs')
-        console.log(parsed_sdp.codecs)
+        console.log('codecs');
+        console.log(parsed_sdp.codecs);
 
-        let selected_codec = parsed_sdp.codecs[0]
-        if(selected_codec.name == 'telephone-event'){
-            selected_codec = parsed_sdp.codecs[1]
-            console.log(selected_codec)
-        }
+        let selected_codec = parsed_sdp.codecs[0];
 
-        //see if opus is available
+        // Cerca il codec opus
         parsed_sdp.codecs.forEach(codec => {
-            if(codec.name == 'opus'){
+            if (codec.name == 'opus') {
                 selected_codec = codec;
             }
-        })
+        });
 
-        if(selected_codec.name != 'opus'){
-            //check if g729 is available
+        // Se opus non è disponibile, prova con G711 (PCMU o PCMA)
+        if (selected_codec.name != 'opus') {
             parsed_sdp.codecs.forEach(codec => {
-                if(codec.name == 'G729'){
+                if (codec.name == 'PCMU' || codec.name == 'PCMA') {
                     selected_codec = codec;
                 }
-            })
+            });
+        }
+
+        // Se nessun codec valido è stato trovato, seleziona il primo disponibile
+        if (!['opus', 'PCMU', 'PCMA'].includes(selected_codec.name)) {
+            console.log('Nessun codec opus o G711 trovato, selezionato codec di fallback:', selected_codec);
         }
 
         let ffmpeg = spawn('ffmpeg', [
             '-re',
-            '-i', 'song.mp3',
+            '-i', this.welcome_message,
             '-acodec', selected_codec.codec,
             '-ar', selected_codec.rate,
             '-ac', selected_codec.channels,
@@ -52,20 +54,21 @@ class Session{
         ffmpeg.stdout.on('data', (data) => {
             console.log(`stdout: ${data}`);
         });
+
         ffmpeg.stderr.on('data', (data) => {
             console.error(`stderr: ${data}`);
         });
 
         this.ffmpeg = ffmpeg;
-        this.callback({type: 'SESSION_STARTED'});
+        this.callback({ type: 'SESSION_STARTED' });
     }
 
-    stop(){
+    stop() {
         this.ffmpeg.kill('SIGINT');
     }
 
-    listen(){
-        //use ffplay to listen to the stream
+    listen() {
+        // Usa ffplay per ascoltare lo stream
         let listen_sdp = this.listen_sdp;
         let port = listen_sdp.match(/m=audio (\d+) RTP/)[1];
         let ip = listen_sdp.match(/c=IN IP4 (\d+\.\d+\.\d+\.\d+)/)[1];
@@ -88,10 +91,10 @@ class Session{
         let codecs = [];
 
         listen_sdp.split('\n').forEach(line => {
-            if(line.includes('a=rtpmap')){
+            if (line.includes('a=rtpmap')) {
                 let codec = line.match(/a=rtpmap:(\d+) (.+)/)[2];
                 let c_id = line.match(/a=rtpmap:(\d+) (.+)/)[1];
-                codecs.push({                    
+                codecs.push({
                     name: codec.split('/')[0],
                     rate: codec.split('/')[1],
                     channels: codec.split('/')[2] !== undefined ? codec.split('/')[2] : 1,
@@ -101,8 +104,8 @@ class Session{
         })
     }
 
-    pick_codec(codecs){
-        
+    pick_codec(codecs) {
+        // Questa funzione non è implementata, ma potrebbe essere usata per ulteriori logiche
     }
 }
 

@@ -3,8 +3,7 @@
 const dgram = require('dgram')
 
 class Transports {
-    constructor(props){
-        console.log(props)
+    constructor(props) {
         this.type = props.type;
         this.port = props.port;
         this.ip = props.ip;
@@ -13,16 +12,16 @@ class Transports {
         this.socket.bind(this.port, this.ip);
     }
 
-    send(message, ip, port){
-        console.log(`${this.unique_debug_id} Sending Message To: ${ip}:${port}`)
-        console.log(message.toString())
+    send(message, ip, port) {
+        //console.log(`${this.unique_debug_id} Sending Message To: ${ip}:${port}`)
+        //console.log(message.toString())
         this.socket.send(message, port, ip)
     }
 
-    on(callback){
+    on(callback) {
         this.socket.on('message', (msg, rinfo) => {
-            console.log(`${this.unique_debug_id} Received Message From: ${rinfo.address}:${rinfo.port}`)
-            console.log(msg.toString())
+            //console.log(`${this.unique_debug_id} Received Message From: ${rinfo.address}:${rinfo.port}`)
+            //console.log(msg.toString())
             callback(msg);
         })
     }

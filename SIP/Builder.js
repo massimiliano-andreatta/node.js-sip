@@ -28,8 +28,6 @@ const Builder = {
     */
 
     SIPMessageObject: (method, props, challenge_data, proxy_auth = false) => {
-        console.log(props)
-
         var res = {
             method: method.toUpperCase(),
             requestUri: props.requestUri,

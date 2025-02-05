@@ -176,7 +176,6 @@ class VOIP {
                 var c = null;
                 for (var i = mg.length - 1; i >= 0; i--) {
                     if (mg[i].callback !== undefined) {
-                        console.log('callback found')
                         c = mg[i].callback;
                         break;
                     }
@@ -187,23 +186,14 @@ class VOIP {
                 return c
             }
 
-            //if(this.message_stack[branch] == undefined){
-            //    this.message_stack[branch] = {};
-            //}
-            //if(this.message_stack[branch][tag] == undefined){
-            //    this.message_stack[branch][tag] = [];
-            //}
-            //this.message_stack[branch][tag].push({message:res, sent: false})
             if (this.message_stack[call_id] == undefined) {
                 this.message_stack[call_id] = [];
             };
 
             this.message_stack[call_id].push({ message: res, sent: false })
 
-
             let cb = check_for_callbacks(tag, branch);
             if (cb == undefined) {
-                console.log('no callback')
                 if (user_agent_type == 'client') {
                     if (this.transparent == true) {
                         client_callback({ type: res.method || res.statusCode, message: res })
@@ -268,9 +258,10 @@ class VOIP {
         var type = res.method || res.statusCode;
         let headers = SIP.Parser.ParseHeaders(res.headers)
 
+        var returnObject = { type: type, msg: res };
+
         if (type == 'NOTIFY') {
             console.log('uac_responses > NOTIFY')
-
             delete headers['Content-Length']
             delete headers['Content-Type']
             this.send(this.response({
@@ -290,6 +281,14 @@ class VOIP {
                 headers: headers
             }))
         } else if (type == 'OPTIONS') {
+            //console.log('uac_responses > OPTIONS')
+            this.send(this.response({
+                isResponse: true,
+                statusCode: 200,
+                statusText: 'OK',
+                headers: headers
+            }))
+        } else if (type == 'CANCEL') {
             console.log('uac_responses > OPTIONS')
             this.send(this.response({
                 isResponse: true,
@@ -297,6 +296,10 @@ class VOIP {
                 statusText: 'OK',
                 headers: headers
             }))
+            client_callback(returnObject)
+        } else if (type == 'ACK') {
+            console.log('uac_responses > ACK')
+            client_callback(returnObject)
         } else if (type == 'INVITE') {
             console.log('uac_responses > INVITE')
             this.send(this.response({
@@ -311,6 +314,10 @@ class VOIP {
                 statusText: 'Ringing',
                 headers: headers
             }))
+
+            returnObject.type = 'CALL_RECIVED';
+
+            client_callback(returnObject)
         }
     }
 
@@ -465,10 +472,7 @@ class VOIP {
                 headers.password = this.register_password;
                 this.send(SIP.Builder.SIPMessageObject('REGISTER', headers, challenge_data, (ph['Proxy-Authenticate'] !== undefined) ? true : false), (d) => {
                     let parsed_headers = SIP.Parser.ParseHeaders(d.headers);
-
-
                     if (d.statusCode == 200) {
-
                         console.log(`REGISTERED for ${parsed_headers.Contact.expires} seconds`);
                         setTimeout(() => {
                             let tag = parsed_headers.From.tag;
@@ -581,7 +585,6 @@ class VOIP {
             }
         }
 
-
         if (props.auth_required == true) {
             ret.headers['WWW-Authenticate'] = `Digest realm="node.js-sip",nonce="${nonce}",opaque="${opaque}",algorithm=md5,qop="auth"`
         }
@@ -590,11 +593,34 @@ class VOIP {
             ret.headers.Contact = ret.headers.Contact + `;expires=${props.expires}`;
         }
 
-        console.log(ret)
         return ret;
 
     }
 
+    answer(message, sdp_custom) {
+        const headers = SIP.Parser.ParseHeaders(message.headers);
+        const response = this.response({
+            isResponse: true,
+            statusCode: 200,
+            statusText: 'OK',
+            headers: headers,
+            body: sdp_custom
+        });
+        this.send(response);
+    }
+
+    reject(message) {
+        const headers = SIP.Parser.ParseHeaders(message.headers);
+        const response = this.response({
+            isResponse: true,
+            statusCode: 486,
+            statusText: 'Busy Here',
+            headers: headers,
+            body: ''
+        });
+
+        this.send(response);
+    }
 }
 
 module.exports = VOIP;
