@@ -1,17 +1,20 @@
 const Parser = {
 
     custom: (offerSDP, localIP, localPort) => {
+
+        const parsingOfferSDP = Parser.parse(offerSDP);
+
         const sdpLines = offerSDP.split("\r\n");
 
         // Cambia il valore "o=" (origin) con un nuovo session ID e version
-        const sessionID = Math.floor(Math.random() * 1000000000);
+        const sessionID = Math.floor(Math.random() * 1000000);
         const origin = `o=root ${sessionID} ${sessionID} IN IP4 ${localIP}`;
 
         // Cambia il valore "c=" (connection) con il tuo IP locale
         const connection = `c=IN IP4 ${localIP}`;
 
         // Cambia il valore "m=" (media) con la porta locale per l'audio
-        const media = `m=audio ${localPort} RTP/AVP 8 18 0 111 101`;
+        const media = `m=audio ${parsingOfferSDP.port} RTP/AVP 8 18 0 111 101`;
 
         // Costruisce l'SDP di risposta
         const responseSDP = [
@@ -33,7 +36,7 @@ const Parser = {
             "a=sendrecv"
         ].join("\r\n");
 
-        return responseSDP;
+        return `${responseSDP}\r\n`;
     },
 
     parse: (sdp) => {
@@ -46,6 +49,7 @@ const Parser = {
             'PCMA': 'pcm_alaw',
             'telephone-event': 'pcm_mulaw',
             'speex': 'speex',
+            'G722': 'g722',
             'G722': 'g722',
             'G729': 'g729',
             'GSM': 'gsm',

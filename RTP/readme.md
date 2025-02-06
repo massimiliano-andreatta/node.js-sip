@@ -108,6 +108,7 @@ ffmpeg -protocol_whitelist file,rtp,udp -i stream.sdp -f wav output.wav
 - Use Wireshark or Tshark to check incoming RTP packets:
 ```sh
 tshark -i any -Y "rtp"
+Wireshark -i any -Y "rtp"
 ```
 
 ## License

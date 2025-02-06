@@ -24,5 +24,11 @@
   "bugs": {
     "url": "https://github.com/Nik-Hendricks/node.js-sip/issues"
   },
-  "homepage": "https://github.com/Nik-Hendricks/node.js-sip#readme"
+  "homepage": "https://github.com/Nik-Hendricks/node.js-sip#readme",
+  "dependencies": {
+    "util-promisifyall": "^1.0.6",
+    "app-root-path": "^3.1.0",
+    "ffmpeg-static": "^5.2.0",
+    "fluent-ffmpeg": "^2.1.3"
+  }
 }
